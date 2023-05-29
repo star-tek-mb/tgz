@@ -1,0 +1,3 @@
+[submodule "zigcurl"]
+	path = zigcurl
+	url = https://github.com/star-tek-mb/zigcurl.git

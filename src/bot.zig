@@ -21,9 +21,9 @@ pub const Response = struct {
         if (tokens_count < 0) {
             return error.BotBadResponse;
         }
-        var tokens = try allocator.alloc(c.jsmntok_t, @intCast(usize, tokens_count));
+        var tokens = try allocator.alloc(c.jsmntok_t, @as(usize, @intCast(tokens_count)));
         c.jsmn_init(&parser);
-        _ = c.jsmn_parse(&parser, json.ptr, json.len, tokens.ptr, @intCast(c_uint, tokens.len));
+        _ = c.jsmn_parse(&parser, json.ptr, json.len, tokens.ptr, @as(c_uint, @intCast(tokens.len)));
 
         return .{
             .allocator = allocator,
@@ -42,7 +42,7 @@ pub const Response = struct {
                     break :blk OriginalT;
                 }
             };
-            var value = self.json[@intCast(usize, token.start)..@intCast(usize, token.end)];
+            var value = self.json[@as(usize, @intCast(token.start))..@as(usize, @intCast(token.end))];
             if ((token.type == c.JSMN_STRING or token.type == c.JSMN_PRIMITIVE) and T == []const u8) {
                 // return string
                 return value;
@@ -74,7 +74,7 @@ pub const Response = struct {
             } else if (token.type == c.JSMN_OBJECT or token.type == c.JSMN_ARRAY) {
                 // return array or object length
                 return switch (@typeInfo(T)) {
-                    .Int, .ComptimeInt => @intCast(T, token.size),
+                    .Int, .ComptimeInt => @as(T, @intCast(token.size)),
                     else => error.TypeMismatch,
                 };
             } else {
@@ -98,10 +98,10 @@ pub const Response = struct {
                 if (tok.type == c.JSMN_OBJECT) {
                     depth += 1;
                     current_token += 1;
-                    const object_length = @intCast(usize, tok.size);
-                    for (0..@intCast(usize, object_length)) |_| {
+                    const object_length = @as(usize, @intCast(tok.size));
+                    for (0..@as(usize, @intCast(object_length))) |_| {
                         var key_tok = self.tokens[current_token];
-                        var key = self.json[@intCast(usize, key_tok.start)..@intCast(usize, key_tok.end)];
+                        var key = self.json[@as(usize, @intCast(key_tok.start))..@as(usize, @intCast(key_tok.end))];
                         current_token += 1;
                         if (std.mem.eql(u8, key, current)) {
                             found = true;
@@ -113,18 +113,18 @@ pub const Response = struct {
                     depth -= 1;
                 } else if (tok.type == c.JSMN_ARRAY) {
                     depth += 1;
-                    const array_length = @intCast(usize, tok.size);
+                    const array_length = @as(usize, @intCast(tok.size));
 
                     if (depth == search_depth and (std.ascii.isDigit(current[0]) or current[0] == '-')) {
                         found = true;
                         var index = std.fmt.parseInt(i64, current, 10) catch unreachable;
                         if (index < 0) {
-                            index = @intCast(i64, array_length) - (std.math.absInt(index) catch unreachable);
+                            index = @as(i64, @intCast(array_length)) - (std.math.absInt(index) catch unreachable);
                         }
                         if (index < 0 or index >= array_length) unreachable;
 
                         current_token += 1;
-                        for (0..@intCast(usize, index)) |_| {
+                        for (0..@as(usize, @intCast(index))) |_| {
                             skipToken(self.tokens, &current_token);
                         }
                         break;
@@ -250,11 +250,11 @@ pub const Bot = struct {
         defer res.deinit();
         var updates_result = res.dot_token("result") orelse return null;
         if (updates_result.type != c.JSMN_ARRAY) return null;
-        var updates_len = @intCast(usize, updates_result.size);
+        var updates_len = @as(usize, @intCast(updates_result.size));
         if (updates_len != 1) return null;
 
         var update_token = res.dot_token("result.0") orelse return error.OutOfIndexError;
-        var update = try Response.parse(self.allocator, res.json[@intCast(usize, update_token.start)..@intCast(usize, update_token.end)]);
+        var update = try Response.parse(self.allocator, res.json[@as(usize, @intCast(update_token.start))..@as(usize, @intCast(update_token.end))]);
 
         self.last_update = try update.dot(usize, "update_id") + 1;
         return update;
